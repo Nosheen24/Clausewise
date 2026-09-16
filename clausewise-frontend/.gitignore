@@ -1,35 +1,44 @@
 # =========================
-# Monorepo Root
+# Node / Next.js
 # =========================
+node_modules/
+.next/
+out/
+build/
+coverage/
 
-# Planning / documentation files (not part of the project)
-*.docx
-*.pdf
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
 
-# Root-level lockfiles (frontend has its own)
-package-lock.json
+# Package managers
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
 # =========================
-# Node / Next.js (frontend)
-# =========================
-# Frontend node_modules and build outputs are handled in clausewise-frontend/.gitignore
-# This root .gitignore only handles root-level patterns
-
-# =========================
-# Python / Django (backend)
+# Python / Django
 # =========================
 __pycache__/
 *.py[cod]
 *$py.class
+
 *.egg-info/
 .venv/
 venv/
 env/
+
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .coverage
 htmlcov/
+
+# Django
 db.sqlite3
 db.sqlite3-journal
 media/
@@ -54,14 +63,19 @@ staticfiles/
 Thumbs.db
 .vscode/
 .idea/
-*.swp
-*.swo
 
 # =========================
-# Debug / Logs
+# Debug
 # =========================
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-*.log
+
+# =========================
+# Vercel
+# =========================
+.vercel/
+
+# Certificates / keys
+*.pem
