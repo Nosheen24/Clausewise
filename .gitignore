@@ -1,8 +1,18 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# =========================
+# Node / Next.js
+# =========================
+node_modules/
+.next/
+out/
+build/
+coverage/
 
-# dependencies
-/node_modules
-/.pnp
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Package managers
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -10,32 +20,62 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
+# =========================
+# Python / Django
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
 
-# next.js
-/.next/
-/out/
+*.egg-info/
+.venv/
+venv/
+env/
 
-# production
-/build
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
-# misc
+# Django
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Docker
+# =========================
+*.log
+
+# =========================
+# IDE / OS
+# =========================
 .DS_Store
-*.pem
+Thumbs.db
+.vscode/
+.idea/
 
-# debug
+# =========================
+# Debug
+# =========================
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
+pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# =========================
+# Vercel
+# =========================
+.vercel/
 
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# Certificates / keys
+*.pem
