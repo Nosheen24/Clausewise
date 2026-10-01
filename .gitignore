@@ -65,3 +65,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 *.log
+
+temp_keys.json
+.env
+.env.*
+!.env.example
