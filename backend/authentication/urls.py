@@ -2,7 +2,7 @@
 URL configuration for authentication endpoints.
 """
 from django.urls import path
-from .views import register, login, logout, profile, update_profile
+from .views import register, login, logout, profile, update_profile, refresh_token
 
 app_name = "authentication"
 
@@ -12,4 +12,5 @@ urlpatterns = [
     path("auth/logout/", logout, name="logout"),
     path("auth/profile/", profile, name="profile"),
     path("auth/profile/update/", update_profile, name="profile-update"),
+    path("auth/refresh/", refresh_token, name="refresh_token"),
 ]

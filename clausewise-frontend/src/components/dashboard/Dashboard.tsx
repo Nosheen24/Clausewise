@@ -38,7 +38,7 @@ export function Dashboard() {
           </Button>
           <Button variant="primary" size="lg" asChild>
             <Link href="/review">
-              <FileText className="w-4 h-4 mr-2" /> Review Queue (8)
+              <FileText className="w-4 h-4 mr-2" /> Review Queue
             </Link>
           </Button>
         </div>

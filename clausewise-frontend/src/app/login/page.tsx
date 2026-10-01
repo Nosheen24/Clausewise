@@ -12,16 +12,22 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const ok = login(email, password);
-    if (ok) {
-      router.push('/dashboard');
-      router.refresh();
-    } else {
-      setError('Invalid email or password');
+    setIsSubmitting(true);
+    try {
+      const ok = await login(email, password);
+      if (ok) {
+        router.push('/dashboard');
+        router.refresh();
+      } else {
+        setError('Invalid email or password');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -87,8 +93,8 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <Button type="submit" className="w-full py-2.5" size="lg">
-            Sign in
+          <Button type="submit" className="w-full py-2.5" size="lg" disabled={isSubmitting}>
+            {isSubmitting ? 'Signing in...' : 'Sign in'}
           </Button>
         </form>
 

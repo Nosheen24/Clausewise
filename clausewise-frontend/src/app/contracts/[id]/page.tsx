@@ -1,17 +1,93 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Card } from '@/components/ui/Card';
-import { getContract } from '@/lib/data';
-import { FileText, Calendar, GitCompare, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
+import { FileText, Calendar, GitCompare, CheckCircle, AlertTriangle, Clock, Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { ContractsAPI, ApiError } from '@/lib/api';
 
 export default function ContractDetailPage({ params }: { params: { id: string } }) {
-  const contract = getContract(params.id);
+  const [contract, setContract] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadContract(params.id);
+  }, [params.id]);
+
+  const loadContract = async (id: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Load contract details
+      const contractData = await ContractsAPI.getContract(id);
+      if (!contractData) {
+        setError('Contract not found');
+        return;
+      }
+
+      // Load versions
+      const versions = await ContractsAPI.getContractVersions(id);
+
+      // Load clauses
+      const clauses = await ContractsAPI.getContractClauses(id);
+
+      // Load obligations
+      const obligations = await ContractsAPI.getContractObligations(id);
+
+      // Load extracted fields
+      const extraction = await ContractsAPI.getContractExtraction(id);
+
+      setContract({
+        ...contractData,
+        versions,
+        clauses,
+        obligations,
+        extractedFields: extraction || [],
+      });
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+          setError('You need to be logged in to view contract details.');
+        } else {
+          setError(err.message || 'Failed to load contract details.');
+        }
+      } else {
+        setError('Failed to load contract details. Please try again.');
+      }
+      console.error('Failed to load contract:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="ml-3 text-gray-600">Loading contract...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <AlertCircle className="w-12 h-12 text-red-500 mb-3" />
+        <p className="text-gray-700 font-medium mb-2">Unable to load contract</p>
+        <p className="text-gray-500 text-sm mb-4">{error}</p>
+        <Button variant="secondary" onClick={() => loadContract(params.id)}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
 
   if (!contract) {
     return (
@@ -62,7 +138,7 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
                 Contract Details
               </h2>
               <p className="text-gray-600 text-sm mt-1">
-                Version {contract.currentVersion.versionNumber} · {contract.currentVersion.fileName}
+                Version {contract.currentVersion?.versionNumber || 'N/A'} · {contract.currentVersion?.fileName || 'N/A'}
               </p>
             </div>
             <div className="flex gap-3">
@@ -88,7 +164,7 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
             <div className="lg:col-span-2 space-y-6">
               <Card title="Extracted Information">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {contract.extractedFields.map((field) => (
+                  {contract.extractedFields?.map((field: any) => (
                     <div key={field.id} className="border border-gray-100 rounded-lg p-4">
                       <div className="text-xs text-gray-500 uppercase tracking-wide">
                         {field.fieldType.replace(/_/g, ' ')}
@@ -104,7 +180,7 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
 
               <Card title="Clause Review">
                 <div className="space-y-3">
-                  {contract.clauses.map((clause) => (
+                  {contract.clauses?.map((clause: any) => (
                     <div key={clause.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100">
                       {clause.playbookMatch ? (
                         <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
@@ -129,13 +205,13 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
             <div className="space-y-6">
               <Card title="Obligations">
                 <div className="space-y-3">
-                  {contract.obligations.map((obligation) => (
+                  {contract.obligations?.map((obligation: any) => (
                     <div key={obligation.id} className="flex gap-3 items-start">
                       <Calendar className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                       <div>
                         <div className="text-sm font-medium text-gray-900">{obligation.description}</div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {new Date(obligation.dueDate).toLocaleDateString()}
+                          {obligation.dueDate ? new Date(obligation.dueDate).toLocaleDateString() : 'N/A'}
                         </div>
                       </div>
                     </div>
@@ -149,7 +225,7 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
                   <div>
                     <div className="font-medium text-gray-900">Completed</div>
                     <div className="text-sm text-gray-500">
-                      Processed {contract.extractedFields.length} fields
+                      Processed {contract.extractedFields?.length || 0} fields
                     </div>
                   </div>
                 </div>

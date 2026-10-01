@@ -2,17 +2,22 @@
 
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
-import { Button, Input, Card, Modal } from '@/components/ui';
+import { Button, Input, Card } from '@/components/ui';
 import { useState } from 'react';
-import { Upload as UploadIcon, File, X } from 'lucide-react';
+import { Upload as UploadIcon, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { ContractsAPI, ApiError } from '@/lib/api';
+import { useRouter } from 'next/navigation';
 
 export default function UploadPage() {
+  const router = useRouter();
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [title, setTitle] = useState('');
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [contractId, setContractId] = useState<string | null>(null);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -26,12 +31,32 @@ export default function UploadPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) return;
+
     setIsUploading(true);
-    // Simulate upload
-    setTimeout(() => {
-      setIsUploading(false);
+    setUploadError(null);
+
+    try {
+      // Step 1: Create a contract first
+      const contract = await ContractsAPI.createContract({
+        title,
+        status: 'draft',
+      });
+
+      // Step 2: Upload the document as a version
+      await ContractsAPI.uploadContractDocument(contract.id, selectedFile);
+
+      setContractId(contract.id);
       setIsComplete(true);
-    }, 1500);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setUploadError(err.message || 'Upload failed. Please try again.');
+      } else {
+        setUploadError('Upload failed. Please try again.');
+      }
+      console.error('Upload failed:', err);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -50,6 +75,13 @@ export default function UploadPage() {
 
             {!isComplete ? (
               <form onSubmit={handleSubmit} className="space-y-6">
+                {uploadError && (
+                  <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>{uploadError}</span>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Title
@@ -58,6 +90,7 @@ export default function UploadPage() {
                     placeholder="e.g., Acme Services Agreement"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
+                    required
                   />
                 </div>
 
@@ -114,10 +147,18 @@ export default function UploadPage() {
                   </p>
                   <div className="flex gap-3 justify-center">
                     <Button asChild>
+                      <Link href={`/contracts/${contractId}`}>View Contract</Link>
+                    </Button>
+                    <Button asChild>
                       <Link href="/contracts">View All Contracts</Link>
                     </Button>
-                    <Button variant="ghost" asChild>
-                      <Link href="/upload">Upload Another</Link>
+                    <Button variant="ghost" asChild onClick={() => {
+                      setIsComplete(false);
+                      setTitle('');
+                      setSelectedFile(null);
+                      setContractId(null);
+                    }}>
+                      Upload Another
                     </Button>
                   </div>
                 </div>

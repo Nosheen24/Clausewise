@@ -1,10 +1,11 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { UserAPI, ApiError } from '@/lib/api';
+import { Badge, Card, Input, Button } from '@/components/ui';
+import { UserPlus, User, AlertCircle, Loader2 } from 'lucide-react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
-import { getUsers } from '@/lib/data';
-import { Badge, Button, Card, Input } from '@/components/ui';
-import { UserPlus, User } from 'lucide-react';
 
 const roleLabels: Record<string, string> = {
   admin: 'Administrator',
@@ -23,7 +24,53 @@ const roleVariant: Record<string, 'default' | 'info' | 'warning' | 'success' | '
 };
 
 export default function UsersPage() {
-  const users = getUsers();
+  const [users, setUsers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await UserAPI.getSystemUsers();
+      setUsers(response.results || []);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+          setError('You need to be logged in to view users.');
+        } else {
+          setError(err.message || 'Failed to load users.');
+        }
+      } else {
+        setError('Failed to load users. Please try again.');
+      }
+      console.error('Failed to load users:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="ml-3 text-gray-600">Loading users...</span>
+      </div>
+    );
+  }
+
+  if (error && !isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg mb-4">
+        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+        <span>{error}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

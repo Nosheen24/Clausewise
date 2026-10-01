@@ -1,14 +1,15 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
-import { getContracts } from '@/lib/data';
-import { Badge, Card } from '@/components/ui';
-import { Calendar } from 'lucide-react';
+import { Badge, Card, Button } from '@/components/ui';
+import { Calendar as CalendarIcon, AlertCircle, Loader2 } from 'lucide-react';
 import { useMemo } from 'react';
 import { differenceInDays } from 'date-fns';
+import { ContractsAPI } from '@/lib/api';
 
-interface TipoColor {
+interface ObligationColor {
   renewal: 'warning';
   payment: 'success';
   expiry: 'danger';
@@ -17,23 +18,65 @@ interface TipoColor {
 }
 
 export default function CalendarPage() {
-  const contracts = getContracts();
+  const [contracts, setContracts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadContracts();
+  }, []);
+
+  const loadContracts = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await ContractsAPI.getContracts();
+      setContracts(response.results || []);
+    } catch (err: any) {
+      if (err.status === 401) {
+        setError('You need to be logged in to view the calendar.');
+      } else {
+        setError(err.message || 'Failed to load contracts.');
+      }
+      console.error('Failed to load contracts:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const obligations = useMemo(() => {
     const now = new Date();
     return contracts
-      .filter(c => c.obligations.length > 0)
+      .filter(c => c.obligations && c.obligations.length > 0)
       .flatMap(c =>
-        c.obligations.map(o => ({
+        c.obligations.map((o: any) => ({
           ...o,
           contractTitle: c.title,
           contractId: c.id,
           daysRemaining: Math.max(0, Math.ceil(differenceInDays(new Date(o.dueDate), now))),
         }))
       )
-      .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+      .sort((a: any, b: any) => a.dueDate.localeCompare(b.dueDate))
       .slice(0, 10);
-  }, []);
+  }, [contracts]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="ml-3 text-gray-600">Loading calendar...</span>
+      </div>
+    );
+  }
+
+  if (error && !isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg mb-4">
+        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+        <span>{error}</span>
+      </div>
+    );
+  }
 
   const typeColors: Record<'renewal' | 'payment' | 'expiry' | 'termination' | 'notice', 'info' | 'success' | 'warning' | 'danger' | 'muted'> = {
     renewal: 'warning',
@@ -58,20 +101,20 @@ export default function CalendarPage() {
             <div className="lg:col-span-2">
               <Card title="Upcoming Obligations">
                 <div className="space-y-3">
-                  {obligations.map((obligation, index) => (
+                  {obligations.map((obligation: any, index: number) => (
                     <div
                       key={index}
                       className="flex items-center gap-4 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer"
                     >
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0`}
                         style={{ background: obligation.daysRemaining < 0 ? 'rgba(220,38,38,0.1)' : 'rgba(20,48,79,0.1)' }}>
-                        <Calendar className="w-5 h-5" style={{ color: obligation.daysRemaining < 0 ? '#DC2626' : '#14304F' }} />
+                        <CalendarIcon className="w-5 h-5" style={{ color: obligation.daysRemaining < 0 ? '#DC2626' : '#14304F' }} />
                       </div>
                       <div className="flex-1">
                         <div className="font-medium text-gray-900">{obligation.description}</div>
                         <div className="text-sm text-gray-500">{obligation.contractTitle}</div>
                       </div>
-                      <Badge variant={typeColors[obligation.type] as any}>
+                      <Badge variant={typeColors[obligation.type as keyof typeof typeColors]}>
                         {obligation.type}
                       </Badge>
                       <div className="text-sm text-gray-500 whitespace-nowrap">

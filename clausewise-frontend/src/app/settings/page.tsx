@@ -1,10 +1,12 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { SettingsAPI, ApiError } from '@/lib/api';
+import { Card, Button, Input, Select } from '@/components/ui';
+import { useAuth } from '@/components/providers/AuthProvider';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
-import { Card, Button, Input, Select } from '@/components/ui';
-import { useState } from 'react';
-import { useAuth } from '@/components/providers/AuthProvider';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -13,6 +15,74 @@ export default function SettingsPage() {
   const [mediumThreshold, setMediumThreshold] = useState('70');
   const [lowThreshold, setLowThreshold] = useState('50');
   const [renewalDays, setRenewalDays] = useState('90');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      // Try to get organization settings
+      const response = await SettingsAPI.getOrganizationSettings();
+      if (response.results && response.results.length > 0) {
+        const settings = response.results[0];
+        setOrgName(settings.organization_id || 'Acme Corporation');
+        setHighThreshold((settings.confidence_threshold * 100).toString());
+        // Note: The backend doesn't have medium/low threshold fields or renewalDays in settings
+        // These might need to be added to the backend settings model, or we store them separately
+      }
+    } catch (err) {
+      // Settings might not exist yet, that's OK - we'll use defaults
+      console.log('No existing settings found, using defaults');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setError(null);
+    try {
+      // Try to update existing settings
+      const response = await SettingsAPI.getOrganizationSettings();
+      if (response.results && response.results.length > 0) {
+        const settingsId = response.results[0].id;
+        await SettingsAPI.updateOrganizationSettings(settingsId, {
+          organization_id: orgName,
+          confidence_threshold: parseFloat(highThreshold) / 100,
+        });
+      } else {
+        // Create new settings
+        await SettingsAPI.createOrganizationSettings({
+          organization_id: orgName,
+          confidence_threshold: parseFloat(highThreshold) / 100,
+        });
+      }
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message || 'Failed to save settings. Please try again.');
+      } else {
+        setError('Failed to save settings. Please try again.');
+      }
+      console.error('Failed to save settings:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="ml-3 text-gray-600">Loading settings...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -43,6 +113,8 @@ export default function SettingsPage() {
                       type="number"
                       value={highThreshold}
                       onChange={(e) => setHighThreshold(e.target.value)}
+                      min={0}
+                      max={100}
                     />
                   </div>
                   <div>
@@ -53,6 +125,8 @@ export default function SettingsPage() {
                       type="number"
                       value={mediumThreshold}
                       onChange={(e) => setMediumThreshold(e.target.value)}
+                      min={0}
+                      max={100}
                     />
                   </div>
                 </div>
@@ -64,6 +138,8 @@ export default function SettingsPage() {
                     type="number"
                     value={lowThreshold}
                     onChange={(e) => setLowThreshold(e.target.value)}
+                    min={0}
+                    max={100}
                   />
                 </div>
               </div>
@@ -87,7 +163,13 @@ export default function SettingsPage() {
             </Card>
 
             <div className="flex justify-end">
-              <Button>Save Changes</Button>
+              <Button
+                variant="primary"
+                onClick={handleSave}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </Button>
             </div>
           </div>
         </main>

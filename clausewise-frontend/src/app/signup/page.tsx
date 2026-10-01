@@ -13,16 +13,22 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const ok = signup(name, email, password);
-    if (ok) {
-      router.push('/dashboard');
-      router.refresh();
-    } else {
-      setError('Unable to create account');
+    setIsSubmitting(true);
+    try {
+      const ok = await signup(name, email, password);
+      if (ok) {
+        router.push('/dashboard');
+        router.refresh();
+      } else {
+        setError('Unable to create account');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -109,8 +115,8 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <Button type="submit" className="w-full py-2.5" size="lg">
-            Create account
+          <Button type="submit" className="w-full py-2.5" size="lg" disabled={isSubmitting}>
+            {isSubmitting ? 'Creating account...' : 'Create account'}
           </Button>
         </form>
 

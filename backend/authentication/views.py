@@ -18,6 +18,27 @@ from .models import CustomUser
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+def refresh_token(request):
+    """Refresh access token using a refresh token."""
+    refresh_token = request.data.get("refresh")
+    if not refresh_token:
+        return Response(
+            {"error": "Refresh token is required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    try:
+        token = RefreshToken(refresh_token)
+        access_token = token.access_token
+        return Response({"access": str(access_token), "refresh": str(token)})
+    except Exception as e:
+        return Response(
+            {"error": "Invalid or expired refresh token."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
 def register(request):
     """Handle user registration."""
     serializer = RegisterSerializer(data=request.data)
